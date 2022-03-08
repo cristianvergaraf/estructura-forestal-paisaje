@@ -1,0 +1,415 @@
+---
+title: " Análisis factorial de las  matriz del paisaje para las comunas de la región de la Araucanía y los Ríos"
+author: "Cristián Vergara"
+date: "13 de marzo de 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### CARGAR DATOS ####
+
+El primer lugar vamos a cargar el archivo con los datos de un conjunto de 12 métrica seleccionadas para cada comuna de la Araucanía y los Ríos.
+
+```{r}
+library(psych)
+library(GPArotation)
+library(car)
+library(dplyr)
+
+
+setwd("C:/Users/crist/OneDrive/alcala/estructura_paisaje")
+
+
+
+plantaciones_clase_ambas <- read.table(file = "prim_sel_metricas_completas_42_16_05_2019.csv", header = TRUE, sep =";", dec = "." )
+
+plantaciones_clase_ambas
+
+```
+Vamos calcular la normalidad de las métricas usando Shapiro-Wilk normality test
+
+```{r}
+shapiro.test(plantaciones_clase_ambas$NP)
+
+lapply(plantaciones_clase_ambas[,3:44], shapiro.test)
+```
+Existen algunas métrics que no muestran una distribución normal. Las vamos a eliminar y ver el impacto que esto tiene en los índices.
+
+## Vamos a hacer una prueba de homogeneidad
+
+```{r}
+
+library(car)
+
+leveneTest(plantaciones_clase_ambas$LPI, plantaciones_clase_ambas$NP, center = mean)
+
+```
+
+Vamos a crear un nuevo data set eliminando las variables 
+
+no_normales <- c("AREA_MN","AREA_AM","GYRATE_AM","GYRATE_MN", "SHAPE_AM", "ENN_MN", "ENN_AM", "COHESION", "DIVISION", "MESH", "SPLIT", "LPI")
+
+```{r}
+
+dis_norm_plantaciones_cl_a <-select(plantaciones_clase_ambas, -c("AREA_MN","AREA_AM","GYRATE_AM","GYRATE_MN", "SHAPE_AM", "ENN_MN", "ENN_AM", "COHESION", "DIVISION", "MESH", "SPLIT", "LPI"))
+
+```
+
+
+ahora veremos las estadistica descriptiva de las plantaciones 
+
+```{r}
+
+describe(dis_norm_plantaciones_cl_a[,3:32])
+describe(plantaciones_clase_ambas[,3:44])
+```
+
+Vamos a normalizar la base de datos y evaluar la estadistica descriptiva de las variables.
+
+```{r}
+normalize <- function(x) {
+  return((x-min(x)) / (max(x)-min(x)))
+}
+
+normalizacion_plantaciones_ambas <- as.data.frame(lapply(plantaciones_clase_ambas[,3:44], normalize))
+
+
+describe(normalizacion_plantaciones_ambas)
+
+```
+
+Vamos a hacer el analisis de normalidad a partir de los datos normalizados.
+
+Esto lo podemos hacer porque consideramos que el proceso de estandarización permite normalizar las variables.
+
+
+```{r}
+shapiro.test(normalizacion_plantaciones_ambas$NP)
+
+lapply(normalizacion_plantaciones_ambas, shapiro.test)
+
+```
+
+
+
+Vamos que la estandarización de las variables con el método empleado no pudo normalizar las distribuciones de las variables que no tenian un comportamiento normal.
+
+Podemos ver que las algunas variables no tienen ua distribución normal perfecta. Estimada a partir de el kurtosis y el skew.
+
+Vamos a normalizar las variables  
+
+```{r}
+
+normalize <- function(x) {
+  return((x-min(x)) / (max(x)-min(x)))
+}
+
+norm_dist_n_plantaciones_cl_a <- as.data.frame(lapply(dis_norm_plantaciones_cl_a[,3:32], normalize))
+
+describe(norm_dist_n_plantaciones_cl_a)
+
+
+```
+
+
+
+### Vamos  evaluar si existen outlayers ####
+
+En este caso nrow nos muestra los grados de observaciones, y summary de mahal y cutoff nos dice cuantos outlayers existen.
+
+Los valores falsos serán considerados outlayers
+
+
+```{r}
+
+nrow(normalizacion_plantaciones_ambas)
+
+cutoff <- qchisq(1-.001, ncol(normalizacion_plantaciones_ambas))
+
+mahal <- mahalanobis(normalizacion_plantaciones_ambas, colMeans(normalizacion_plantaciones_ambas),cov(normalizacion_plantaciones_ambas))
+
+cutoff
+
+mahal
+
+summary(mahal < cutoff)
+```
+
+A partir de estos resultados podemos ver si existen outlayers o no.
+
+#### Ahora vamos a revisar la correlación. Queremos verificar que existe una correlación suficientemente fuerte para realizar este análisis. 
+
+Primero calcularemos la matríz de correlación
+
+```{r}
+correl_1 <- cor(normalizacion_plantaciones_ambas, use="pairwise.complete.obs", method = "spearman")
+
+correl_2 <- cor(normalizacion_plantaciones_ambas, use="pairwise.complete.obs", method = "pearson")
+
+
+symnum(correl_1)
+
+l_correl_1 <- lowerCor(normalizacion_plantaciones_ambas, use="pairwise.complete.obs", method = "spearman")
+
+l_correl_2 <- lowerCor(normalizacion_plantaciones_ambas, use="pairwise.complete.obs", method = "pearson")
+
+write.table(l_correl_1, file ="cor_norm_pl_ambas_sp.csv", sep =",")
+
+write.table(l_correl_2, file ="cor_norm_pl_ambas_pe.csv", sep =",")
+
+
+```
+Ahora vamos a evaluar las correlaciones del dataframe al que le quitamos las variables que no presentaban normalidad.
+
+```{r}
+
+correl_3 <- cor(norm_dist_n_plantaciones_cl_a, use="pairwise.complete.obs", method = "spearman")
+
+correl_4 <- cor(norm_dist_n_plantaciones_cl_a, use="pairwise.complete.obs", method = "pearson")
+
+l_correl_3 <- lowerCor(norm_dist_n_plantaciones_cl_a, use="pairwise.complete.obs", method = "spearman")
+
+l_correl_4 <- lowerCor(norm_dist_n_plantaciones_cl_a, use="pairwise.complete.obs", method = "pearson")
+
+
+write.table(l_correl_3, file ="cor_norm_dist_n_pl_sp.csv", sep =",")
+
+write.table(l_correl_4, file ="cor_norm_dist_n_pl_pear.csv", sep =",")
+
+
+```
+
+Existen muchas variables correlacionadas, por lo tanto vamos a eliminar las variables con correlación sobre 0.9 en la correlación de spearman.
+
+Debemos verificar cuales son las variables las que estan correlacionadas.
+
+c("GYRATE", "FRAC_MD", "CONTIG_AM", "PARA_MN", "PARA_MD", "CONTIG_MD", "AI", "LSI", "NLSI")
+
+```{r}
+
+co_dis_norm_plantaciones_cl_a <- select(dis_norm_plantaciones_cl_a, -c("CA","PLAND", "GYRATE_MD", "FRAC_MD", "CONTIG_AM","CONTIG_MN","PARA_AM", "PARA_MD", "CONTIG_MD", "AI", "LSI", "NLSI", "LID", "TYPE"))
+                                        
+```
+
+# Vamos a verificar que disminuyó que ya no existen correlaciones > 0.9
+
+```{r}
+
+correl_6 <- cor(co_dis_norm_plantaciones_cl_a, use="pairwise.complete.obs", method = "spearman")
+
+write.table(correl_6, file ="el_co_norm_dist_n_pl_sp_1.csv", sep =",")
+
+
+```
+
+#### Ahora vamos a evaluar la normalidad de los datos
+
+```{r}
+# make a random variable
+random <- rchisq(nrow(normalizacion_plantaciones_ambas),7)
+
+# Run a fake regression
+fake <- lm(random~., data=normalizacion_plantaciones_ambas)
+
+#create the standardized residuals:
+stand <- rstudent(fake)
+
+#create the fitted values:
+fitted = scale(fake$fitted.values)
+
+#normality
+
+hist(stand)
+
+```
+
+Vamos a evaluar la normalidad de los datos aplicado al data frame al que se eliminarion las variables con distribucion normal y correlacionadas
+
+```{r}
+# make a random variable
+random_1 <- rchisq(nrow(co_dis_norm_plantaciones_cl_a),7)
+
+# Run a fake regression
+fake_1 <- lm(random_1~., data=co_dis_norm_plantaciones_cl_a)
+
+#create the standardized residuals:
+stand_1 <- rstudent(fake_1)
+
+#create the fitted values:
+fitted_1 = scale(fake_1$fitted.values)
+
+#normality
+
+hist(stand_1)
+
+``` 
+ 
+  Este histograma nos ha servido para probar la normalidad de los datos. Se observa que tiene una distribución bastante normal.
+ 
+ #### Ahora vamos a probar linealidad, los puntos deben estar entre -2 y 2, y cerca de la línea recta. 
+
+```{r}
+qqnorm(stand)
+abline(0,1)
+```
+Los datos se ajustan bastante a la curva por lo que puede ver que los datos tienen un comportamiento bastante lineal.
+
+Vamos a realizar el mismo analisis con el data-frame sin colinealidad y sin variables correlacionadas
+
+
+```{r}
+qqnorm(stand_1)
+abline(0,1)
+```
+
+#### Ahora vamos a probar homogeneity, and homocedasticidad 
+
+los valores deben estar centrado en 0
+```{r}
+plot(fitted, stand)
+abline(0,0)
+abline(v=0)
+```
+
+Vamos a realizar esta prueba con las variables sin correlacion y sin anormalidad
+
+```{r}
+plot(fitted_1, stand_1)
+abline(0,0)
+abline(v=0)
+```
+
+Los datos no son perfectamente homogeneos y homocatatiscos.
+
+Vemos que los datos son un poco dispersos, idealmente deberián estar centrados cerca del 0
+
+Los datos mejoran en el segundo gráfico.
+
+#### Ahora vamos a ver la adecuación de la correlación y la muestra usando el bartlett test
+ 
+```{r}
+cortest.bartlett(correl_1,nrow(normalizacion_plantaciones_ambas))
+
+KMO(correl_1)
+```
+Lo vamos a comparar con la base de datos purificada
+
+```{r}
+cortest.bartlett(correl_1,nrow(dis_norm_plantaciones_cl_a))
+
+KMO(correl_1)
+```
+
+```{r}
+cortest.bartlett(correl_6,nrow(co_dis_norm_plantaciones_cl_a))
+
+KMO(correl_6)
+```
+
+¿Cuántos factores deberíamos considerar?
+
+```{r}
+nfactors <- fa.parallel(co_dis_norm_plantaciones_cl_a, fm="ml", fa ="fa") # ml = maximum likelihood and fa ="factor analysis"
+
+print("suma de los eigenvalues segun criterio de kaiser") 
+sum(nfactors$fa.values > 1.0) ## old kaiser criterion
+sum(nfactors$fa.values > .7) ## new kaiser criterion
+
+```
+Vemos que en el resultado gráfico podemos diferenciar 3 factores.
+
+Vamos a repetir el análisis ahora el data.frame con la eliminación de variables
+
+El resultado nos muestra solo dos variables
+
+A continuación vamos a realizar el análisis factorial, con tres factores y método oblimin.
+
+```{r}
+final_model <-fa(co_dis_norm_plantaciones_cl_a, nfactors = 3, rotate ="oblimin", fm="ml")
+
+final_model
+```
+
+```{r}
+final_model_1 <-fa(co_dis_norm_plantaciones_cl_a, nfactors = 3, rotate ="varimax", fm="ml")
+
+final_model_1
+```
+
+ahora vamos a comparar con el data.frame donde hemos descartado algunas variables
+
+Analizamos el valor de los loadings. Si existe un item que se relaciona de forma muy fuerte a dos factores es algo raro. Los valores negativos pueden ser elimnados si solo queremos que los factores se relacionen de forma positiva.
+
+Podemos eliminar items, en este caso comunas con doble loadings. Aunque no es lo que más nos interesa en este trabajo. 
+
+Es interesante también que hayamos revisemos el RMSR y el RMSEA
+
+RANGOS SUGERIDOS DE RMSR > 0.1 poor
+RANGOS SUGERIDOS PARA EL RMSEA > 0.1 poor
+RANGOS SUGERIDOS PARA TUCKER LEWIS INDEX = 0.686 poor
+
+
+#### Vamos a calcular una medida de evaluación del ajuste del análisis factorial el CFI. How good we have done compare with a null model. 
+
+
+```{r}
+
+1-((final_model$STATISTIC-final_model$dof)/(final_model$null.chisq-final_model$null.dof))
+
+
+
+```
+
+EL RANGO PARA UN BUEN VALOR DE CFI ES: menor valores es mejor porque representan un mejor ajuste. 0.86 indica un ajuste regular.
+
+Vamos ahora a evaluar Alpha para cada factor
+
+```{r}
+factor1 <- c(1,2,3,4)
+factor2 <- c(5,6)
+factor3 <- c(8,9)
+
+alpha(normalizacion_plantaciones_ambas[, factor1]) # creates an avarage score
+alpha(normalizacion_plantaciones_ambas[, factor2]) # creates an avarage score
+alpha(normalizacion_plantaciones_ambas[, factor3]) # creates an avarage score
+
+```
+Los valores de ALPHA deberian estar entre los valores.
+
+#### Ahora vamos a tratar de buscar un factor score para cada factor 
+
+
+```{r}
+
+normalizacion_plantaciones_ambas$factor1 <- apply(normalizacion_plantaciones_ambas[, factor1], 1, mean) # create an average score
+
+normalizacion_plantaciones_ambas$factor2 <-apply(normalizacion_plantaciones_ambas[, factor2], 1, mean) # create average score
+
+normalizacion_plantaciones_ambas$factor3 <-apply(normalizacion_plantaciones_ambas[, factor3], 1, mean) # create average score
+
+summary(normalizacion_plantaciones_ambas)
+
+```
+
+#### vamos a calcular la desviación estandar de cada factor
+
+```{r}
+sd(normalizacion_plantaciones_ambas$factor1)
+sd(normalizacion_plantaciones_ambas$factor2)
+sd(normalizacion_plantaciones_ambas$factor3)
+
+normalizacion_plantaciones_ambas
+
+```
+
+
+```{r}
+normalizacion_plantaciones_ambas
+
+```
+
