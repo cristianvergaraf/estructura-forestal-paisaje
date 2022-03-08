@@ -1,0 +1,149 @@
+---
+title: " Análisis factorial de las  matriz del paisaje para las comunas de la región de la Araucanía y los Ríos"
+author: "Cristián Vergara"
+date: "3 de marzo de 2022"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### CARGAR DATOS ####
+
+El primer lugar vamos a cargar el archivo con los datos de un conjunto de 12 métrica seleccionadas para cada comuna de la Araucanía y los Ríos.
+
+```{r}
+library(psych)
+library(GPArotation)
+library(car)
+library(dplyr)
+
+
+setwd("C:/Users/crist/OneDrive/alcala/estructura_paisaje")
+
+
+
+plantaciones_clase_ambas <- read.table(file = "prim_sel_metricas_completas_42_16_05_2019.csv", header = TRUE, sep =";", dec = "." )
+
+plantaciones_clase_ambas
+
+```
+
+Ahora veremos las estadistica descriptiva de las plantaciones 
+
+```{r}
+describe(plantaciones_clase_ambas[,3:44])
+```
+
+Vamos a normalizar la base de datos y evaluar la estadistica descriptiva de las variables.
+
+#### Ahora vamos a revisar la correlación. Queremos verificar que existe una correlación suficientemente fuerte para realizar este análisis. 
+
+Primero calcularemos la matríz de correlación
+
+Existen muchas variables correlacionadas, por lo tanto vamos a eliminar las variables con correlación sobre 0.9 en la correlación de spearman.
+
+
+
+```{r}
+
+correl <- cor(plantaciones_clase_ambas[3:44], use="pairwise.complete.obs", method = "spearman")
+
+correl
+
+```
+
+#### Ahora vamos a ver la adecuación de la correlación y la muestra usando el bartlett test
+ 
+```{r}
+cortest.bartlett(correl,nrow(plantaciones_clase_ambas[3:44]))
+
+KMO(correl)
+```
+Lo vamos a comparar con la base de datos purificada
+
+
+¿Cuántos factores deberíamos considerar?
+
+```{r}
+nfactors <- fa.parallel(plantaciones_clase_ambas[3:44], fm="ml", fa ="fa") # ml = maximum likelihood and fa ="factor analysis"
+
+print("suma de los eigenvalues segun criterio de kaiser") 
+sum(nfactors$fa.values > 1.0) ## old kaiser criterion
+sum(nfactors$fa.values > .7) ## new kaiser criterion
+
+```
+Vemos que en el resultado gráfico podemos diferenciar 4 factores.
+
+Vamos a repetir el análisis ahora el data.frame con la eliminación de variables
+
+El resultado nos muestra solo dos variables
+
+A continuación vamos a realizar el análisis factorial, con tres factores y método oblimin.
+
+```{r}
+final_model <-fa(plantaciones_clase_ambas[3:44], nfactors = 4, rotate ="oblimin", fm="ml")
+
+final_model
+```
+
+```{r}
+final_model_1 <-fa(plantaciones_clase_ambas[3:44], nfactors = 3, rotate ="varimax", fm="ml")
+
+final_model_1
+```
+
+Vamos a comparar con el data.frame donde hemos descartado algunas variables
+
+Analizamos el valor de los loadings. Si existe un item que se relaciona de forma muy fuerte a dos factores es algo raro. Los valores negativos pueden ser elimnados si solo queremos que los factores se relacionen de forma positiva.
+
+Podemos eliminar items, en este caso comunas con doble loadings. Aunque no es lo que más nos interesa en este trabajo. 
+
+Es interesante también que hayamos revisemos el RMSR y el RMSEA
+
+RANGOS SUGERIDOS DE RMSR > 0.1 poor
+RANGOS SUGERIDOS PARA EL RMSEA > 0.1 poor
+RANGOS SUGERIDOS PARA TUCKER LEWIS INDEX = 0.686 poor
+
+
+#### Vamos a calcular una medida de evaluación del ajuste del análisis factorial el CFI. How good we have done compare with a null model. 
+
+
+```{r}
+
+1-((final_model$STATISTIC-final_model$dof)/(final_model$null.chisq-final_model$null.dof))
+
+
+
+```
+
+EL RANGO PARA UN BUEN VALOR DE CFI ES: menor valores es mejor porque representan un mejor ajuste. 0.86 indica un ajuste regular.
+
+Vamos ahora a evaluar Alpha para cada factor
+
+```{r}
+factor1 <- c(1,2,3,4)
+factor2 <- c(5,6)
+factor3 <- c(8,9)
+
+
+```
+Los valores de ALPHA deberian estar entre los valores.
+
+#### Ahora vamos a tratar de buscar un factor score para cada factor 
+
+
+```{r}
+
+plantaciones_clase_ambas$factor1 <- apply(plantaciones_clase_ambas[3:44][, factor1], 1, mean) # create an average score
+
+plantaciones_clase_ambas$factor2 <-apply(plantaciones_clase_ambas[3:44][, factor2], 1, mean) # create average score
+
+plantaciones_clase_ambas$factor3 <-apply(plantaciones_clase_ambas[3:44][, factor3], 1, mean) # create average score
+
+summary(plantaciones_clase_ambas[3:44])
+
+```
