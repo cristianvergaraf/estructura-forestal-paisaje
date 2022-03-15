@@ -21,10 +21,12 @@ library(GPArotation)
 library(car)
 library(dplyr)
 
+setwd("~/GitHub/estructura-forestal-paisaje")
 
-setwd("C:/Users/crist/OneDrive/alcala/estructura_paisaje")
+```
 
 
+```{r}
 
 plantaciones_clase_ambas <- read.table(file = "prim_sel_metricas_completas_42_16_05_2019.csv", header = TRUE, sep =";", dec = "." )
 
@@ -32,10 +34,60 @@ plantaciones_clase_ambas
 
 ```
 
+
+```{r}
+```
+
+
+```{r}
+first_factor <- fa(plantaciones_clase_ambas[,5:13])
+```
+
+
+```{r}
+first_factor$loadings
+```
+
+
+```{r}
+
+fa.diagram(first_factor)
+```
+```{r}
+#rowSums(first_factor[1:2,])
+head(first_factor$scores)
+summary(first_factor$scores)
+
+plot(density(first_factor$scores, na.rm = TRUE), 
+    main = "Factor Scores")
+
+```
+```{r}
+plot(error.bars(describe(plantaciones_clase_ambas[,4:10])))
+```
+
+
+```{r}
+describe(plantaciones_clase_ambas[,5:10])
+```
+
+
+```{r}
+error.bars(plantaciones_clase_ambas[,5:10])
+
+```
+
+```{r}
+alpha(plantaciones_clase_ambas[,5:10])
+splitHalf((plantaciones_clase_ambas[,5:10]))
+```
+
 Ahora veremos las estadistica descriptiva de las plantaciones 
 
 ```{r}
-describe(plantaciones_clase_ambas[,3:44])
+
+error.dots(plantaciones_clase_ambas[,5:12])
+
 ```
 
 Vamos a normalizar la base de datos y evaluar la estadistica descriptiva de las variables.
