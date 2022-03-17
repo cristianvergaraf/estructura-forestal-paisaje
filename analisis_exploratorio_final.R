@@ -1,6 +1,7 @@
-###
+### Fecha: 16/03/2022
+
 ### Este script tiene como objetivo realizar un análisis exploratorio 
-### De un conjunto de datos multivariantes.
+### de un conjunto de datos multivariantes.
 
 # Cargamos las paquetes necesarios
 
@@ -157,4 +158,3 @@ ggpairs(
   diag = list(continuous = wrap("barDiag", colour = "blue")),
   upper = list(continuous = wrap("cor", size = 5))
 )
-
