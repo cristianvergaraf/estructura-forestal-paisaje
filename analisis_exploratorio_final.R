@@ -42,35 +42,40 @@ rescale.many <- function(dataframe, cols){
   dataframe1
 }
 
-plantaciones_rescale <- rescale.many(X, c(1:16))  
+plantaciones_rescale <- rescale.many(X, c(1:16))
 
-View(plantaciones_rescale)
+#write.csv(plantaciones_rescale, file = "pl_rescale.csv")
 
 #########################
 # Normalización de las variables
 
 
-pl_norm <- scale(X, center = TRUE, scale = TRUE)
 
 
 ## Esta función conserva el dataframe original
 scale.many = function(dataframe, cols){
+  dataframe1 <- data.frame(pl_metricas[1])
   names <- names(dataframe)
   for(col in cols){
     name <- paste(names[col], "z", sep = ".")
-    dataframe[name] <- scale(dataframe[,col])
+    dataframe1[name] <- scale(dataframe[,col])
   }
   cat(paste("Hemos normalizado ", length(cols), "variable(s)"))
-  dataframe
+  dataframe1
 }
 
+pl_norm <- scale.many(X, c(1:16))
+
+#write.csv(pl_norm, file = "pl_norm.csv")
+
+#pl_norm <- scale(X, center = TRUE, scale = TRUE)
+
+#EEC900
 
 ############
 
 
-
-
-# configuramos la ventana para hacer los gráficos, vamos agrupar 
+# Configuramos la ventana para hacer los gráficos, vamos agrupar 
 # en ventanas de dos por dos.
 
 par(mfrow = c(2,2))
@@ -78,7 +83,10 @@ par(mfrow = c(2,2))
 # Una primera aproximación para conocer la distribución de las variables es un 
 # Boxplot por variable
 
-sapply(seq(1,16),function(j)boxplot(X[,j],main=colnames(X)[j],xlab="",col="yellow"))
+sapply(seq(1,16),function(j)boxplot(X[,j],main=colnames(X)[j],xlab="",col="#FF8247"))
+sapply(seq(1,16),function(j)boxplot(pl_norm[,2:17][,j],main=colnames(pl_norm[,2:17])[j],xlab="",col="#00FF7F"))
+sapply(seq(1,16),function(j)boxplot(plantaciones_rescale[,2:17][,j],main=colnames(plantaciones_rescale[,2:17])[j],xlab="",col="yellow"))
+
 
 # En un segundo paso generamos un histrograma por variable
 
