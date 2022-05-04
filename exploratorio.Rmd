@@ -1,0 +1,32 @@
+---
+title: "Análisis Exploratorio Métricas del paisaje"
+author: ""
+date: "4/5/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Análisis exploratorio de las variables previo al análisis factorial
+
+
+## 1. Evaluación de la distribución de las variables
+
+### a. Histrogramas
+
+```{r, include = FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(GGally)
+library(scales)
+library(tidyr)
+
+setwd("~/GitHub/estructura-forestal-paisaje")
+
+```
+
